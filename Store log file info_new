@@ -1,0 +1,64 @@
+def scan_and_store_logs():
+
+    # Scan the Airflow log folder and retrieve log files
+
+    log_folder = '/var/log/airflow/logs'  # Update with the correct log folder path
+
+    log_files = glob.glob(os.path.join(log_folder, '*.log'))
+
+    # Parse and filter logs
+
+    filtered_logs = []
+
+    for log_file in log_files:
+
+        with open(log_file, 'r') as f:
+
+            logs = f.readlines()
+
+            for log in logs:
+
+                # Filter logs based on your requirements, e.g., log level or keywords
+
+                if 'ERROR' in log or 'CRITICAL' in log:
+
+                    filtered_logs.append(log)
+
+    # Insert filtered logs into PostgreSQL table
+
+    conn = psycopg2.connect(
+
+        dbname='your_dbname',
+
+        user='your_user',
+
+        password='your_password',
+
+        host='your_host',
+
+        port='your_port'
+
+    )
+
+    cursor = conn.cursor()
+
+    for log in filtered_logs:
+
+        cursor.execute("INSERT INTO airflow_logs (log_message) VALUES (%s);", (log,))
+
+    conn.commit()
+
+    cursor.close()
+
+    conn.close()
+
+scan_logs_task = PythonOperator(
+
+    task_id='scan_logs',
+
+    python_callable=scan_and_store_logs,
+
+    dag=dag,
+
+)
+
